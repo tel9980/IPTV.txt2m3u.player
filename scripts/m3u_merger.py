@@ -3,42 +3,29 @@ import argparse
 import sys
 import os
 
-def merge_m3u_channels(m3u_content):
-    """
-    合并M3U内容中同名频道下的所有URL，并按首次出现的顺序保留所有频道的相对位置。
-    
-    :param m3u_content: 原始M3U文件的字符串内容。
-    :return: 格式化后的M3U字符串内容。
-    """
+# --- 辅助函数：解析单个 M3U 内容 (返回 order_list, channels_map, header) ---
+def parse_single_m3u(m3u_content):
     if not m3u_content:
-        return ""
-
-    # 使用换行符分隔内容，去除首尾空白
+        return [], {}, ""
+        
+    # 严格去除空行，保证后续解析的连续性
     lines = [line.strip() for line in m3u_content.strip().split('\n') if line.strip()]
     
-    header = ""
-    # 存储合并后的频道数据: { "频道名称": {"info": "#EXTINF...", "urls": {"url1", "url2", ...}} }
     channels_map = {}
-    
-    # 存储所有频道的名称，按首次出现的顺序排列，用于最终输出的排序
     order_list = []
+    header = ""
     
     current_info_line = None
     current_channel_name = None
     
-    # --- 第一步：解析和分组数据 ---
     for line in lines:
-        
-        # 1. 识别 M3U 头部 (只保留第一个文件的头部)
         if line.startswith('#EXTM3U'):
-            if not header:
+            if not header: # 只记录第一个遇到的 M3U 头部
                 header = line
             continue
 
-        # 2. 识别频道信息行
         if line.startswith('#EXTINF:'):
             current_info_line = line
-            # 使用正则表达式提取频道名称
             match = re.search(r',(.+)$', line)
             if match:
                 current_channel_name = match.group(1).strip()
@@ -47,98 +34,134 @@ def merge_m3u_channels(m3u_content):
             
             if current_channel_name:
                 if current_channel_name not in channels_map:
-                    # 首次遇到，初始化，并记录顺序
                     channels_map[current_channel_name] = {"info": current_info_line, "urls": set()}
-                    order_list.append(current_channel_name) # <-- 记录首次出现的顺序！
+                    order_list.append(current_channel_name)
                 else:
-                    # 非首次遇到，更新属性行（选择最新/最后读取到的）
+                    # 总是更新为最新的属性行
                     channels_map[current_channel_name]["info"] = current_info_line
             
-        # 3. 识别 URL 行
         elif (line.startswith('http://') or line.startswith('https://')):
             if current_channel_name and current_channel_name in channels_map:
-                # 将 URL 添加到对应频道的集合中
                 channels_map[current_channel_name]["urls"].add(line)
         
-        # 4. 遇到非 M3U 标签、非 #EXTINF 和 非 URL 的行，则重置状态
         else:
-             current_channel_name = None
-             current_info_line = None
+             current_channel_name = None # 遇到非M3U行则重置状态
 
+    return order_list, channels_map, header # <-- 返回头部信息
 
-    # --- 第二步：重新构建 M3U 内容 ---
-    # 使用 order_list 来确保排序正确
-    output_lines = [header]
-    
-    for name in order_list: # <-- 关键修改：按照 order_list 的顺序遍历
-        # 确保频道有数据（理论上 order_list 中的都有）
-        if name in channels_map:
-            data = channels_map[name]
-            # 添加合并后的 #EXTINF 行
-            output_lines.append(data["info"])
-            # 添加所有收集到的 URL，并排序以保持一致性
-            for url in sorted(list(data["urls"])):
-                output_lines.append(url)
-            
-    return '\n'.join(output_lines)
-
-# --- main 函数 (文件 I/O 部分) 保持不变 ---
+# --- 主函数：处理文件 I/O 和高级合并逻辑 ---
 def main():
     parser = argparse.ArgumentParser(
-        description="合并多个M3U文件的内容，对同名频道下的所有URL进行去重和分组，并输出到一个文件。",
+        description="合并多个M3U文件的内容，对同名频道下的所有URL进行去重和分组，并按频道首次出现的相对顺序排序。",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument(
-        '-i', '--input',
-        type=str,
-        nargs='+',  
-        required=True,
-        help="一个或多个输入M3U文件的路径，例如: input1.m3u input2.m3u"
-    )
-    parser.add_argument(
-        '-o', '--output',
-        type=str,
-        required=True,
-        help="输出M3U文件的路径，例如: combined.m3u"
-    )
-
+    # ... (参数解析部分不变) ...
+    parser.add_argument('-i', '--input', type=str, nargs='+', required=True, help="一个或多个输入M3U文件的路径")
+    parser.add_argument('-o', '--output', type=str, required=True, help="输出M3U文件的路径")
     args = parser.parse_args()
-    all_m3u_content = []
     
-    for input_file in args.input:
+    if not args.input:
+        print("错误: 请提供至少一个输入文件。", file=sys.stderr)
+        sys.exit(1)
+        
+    final_channels_map = {}
+    final_order_list = []
+    final_header = ""
+    
+    # 1. 处理第一个文件 (作为基础顺序)
+    try:
+        input_file_1 = args.input[0]
+        if not os.path.exists(input_file_1):
+            raise FileNotFoundError(f"文件不存在: {input_file_1}")
+            
+        with open(input_file_1, 'r', encoding='utf-8') as f:
+            content_1 = f.read()
+            
+        temp_order_list, temp_map, header = parse_single_m3u(content_1)
+        
+        final_header = header # 记录第一个文件的头部
+        final_order_list.extend(temp_order_list)
+        final_channels_map.update(temp_map)
+        
+    except Exception as e:
+        print(f"处理第一个文件 '{input_file_1}' 时发生错误: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # 2. 依次处理后续文件 (进行高级合并)
+    for input_file in args.input[1:]:
         if not os.path.exists(input_file):
-            print(f"错误: 输入文件 '{input_file}' 不存在。跳过此文件。", file=sys.stderr)
+            print(f"警告: 输入文件 '{input_file}' 不存在。跳过。", file=sys.stderr)
             continue
             
         if input_file == args.output:
-            print(f"警告: 输入文件 '{input_file}' 和输出文件不能是同一个文件。跳过此文件。", file=sys.stderr)
+            print(f"警告: 输入文件 '{input_file}' 和输出文件不能是同一个文件。跳过。", file=sys.stderr)
             continue
 
         try:
             with open(input_file, 'r', encoding='utf-8') as f:
-                all_m3u_content.append(f.read())
+                content_n = f.read()
                 
+            current_order_list, current_map, _ = parse_single_m3u(content_n) # 忽略后续文件的 header
+            
+            last_known_channel_index = -1
+            
+            # 找到文件 2 中已存在频道在最终列表中的最新位置
+            for i, channel in enumerate(final_order_list):
+                if channel in current_map:
+                    last_known_channel_index = i
+
+            # 遍历当前文件的频道顺序，执行插入
+            for channel_name in current_order_list:
+                
+                if channel_name in final_channels_map:
+                    # A. 频道已存在: 合并 URL 和更新属性
+                    
+                    # 1. 更新属性 (保留最新的)
+                    final_channels_map[channel_name]["info"] = current_map[channel_name]["info"]
+                    
+                    # 2. 合并 URL
+                    final_channels_map[channel_name]["urls"].update(current_map[channel_name]["urls"])
+                    
+                    # 3. 更新 last_known_channel_index
+                    last_known_channel_index = final_order_list.index(channel_name)
+                    
+                else:
+                    # B. 频道是新的: 插入到已知频道之后
+                    
+                    # 1. 将新频道添加到最终 map
+                    final_channels_map[channel_name] = current_map[channel_name]
+                    
+                    # 2. 插入到 order_list 中，位置是 last_known_channel_index + 1
+                    insert_index = last_known_channel_index + 1
+                    final_order_list.insert(insert_index, channel_name)
+                    
+                    # 3. 更新 last_known_channel_index 到新插入频道的位置
+                    last_known_channel_index = insert_index 
+
         except Exception as e:
-            print(f"读取文件 '{input_file}' 时发生错误: {e}", file=sys.stderr)
+            print(f"处理文件 '{input_file}' 时发生错误: {e}", file=sys.stderr)
             sys.exit(1)
 
-    if not all_m3u_content:
-        print("没有可供处理的输入文件内容。程序退出。", file=sys.stderr)
-        sys.exit(0)
-        
-    # 注意：这里是将所有文件内容按顺序连接的，这为 order_list 的生成提供了基础
-    combined_content = '\n'.join(all_m3u_content)
+    # 3. 写入最终结果
+    output_lines = [final_header] if final_header else []
+    
+    for name in final_order_list:
+        if name in final_channels_map:
+            data = final_channels_map[name]
+            output_lines.append(data["info"])
+            for url in sorted(list(data["urls"])):
+                output_lines.append(url)
+                
+    modified_m3u = '\n'.join(output_lines)
 
     try:
-        modified_m3u = merge_m3u_channels(combined_content)
-        
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(modified_m3u)
             
         print(f"成功: {len(args.input)} 个 M3U 文件已合并，并写入到 '{args.output}'")
         
     except Exception as e:
-        print(f"处理文件时发生错误: {e}", file=sys.stderr)
+        print(f"写入文件时发生错误: {e}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
