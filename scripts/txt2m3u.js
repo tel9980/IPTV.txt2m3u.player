@@ -3,7 +3,7 @@ const fs = require('fs');
 function convertToM3U(inputFilePath, outputFilePath) {
   var data = fs.readFileSync(inputFilePath, 'utf-8');
   const lines = data.split('\n');
-  let m3uOutput = '#EXTM3U x-tvg-url="https://live.fanmingming.com/e.xml"\n';
+  let m3uOutput = '#EXTM3U x-tvg-url="https://gh-proxy.org/raw.githubusercontent.com/sparkssssssssss/epg/main/pp.xml"\n';
   let currentGroup = null;
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -13,7 +13,8 @@ function convertToM3U(inputFilePath, outputFilePath) {
       } else {
         const [originalChannelName, channelLink] = trimmedLine.split(',').map(item => item.trim());
         const processedChannelName = originalChannelName.replace(/(CCTV|CETV)-(\d+).*/, '$1$2');
-        m3uOutput += `#EXTINF:-1 tvg-name="${processedChannelName}" tvg-logo="https://live.fanmingming.com/tv/${processedChannelName}.png"`;
+        //m3uOutput += `#EXTINF:-1 tvg-name="${processedChannelName}" tvg-logo="https://live.fanmingming.com/tv/${processedChannelName}.png"`;
+        m3uOutput += `#EXTINF:-1 tvg-name="${processedChannelName}"`;
         if (currentGroup) {
           m3uOutput += ` group-title="${currentGroup}"`;
         }
