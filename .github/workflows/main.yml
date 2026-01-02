@@ -1,8 +1,10 @@
 name: M3u Fetch And Modify
 on: 
-  schedule: 
-    - cron: 11 */3 * * *
+  #schedule: 
+    #- cron: 11 */3 * * *
   workflow_dispatch:
+  repository_dispatch: #允许外部触发
+    types: [tvcron]
 jobs:
   main:
     name: Fetch And Modify
