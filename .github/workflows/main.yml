@@ -76,7 +76,7 @@ jobs:
         mv ../tv4output.m3u ./php.jdshipin.com.m3u
         mv ../tv4output_merged.m3u ./php.jdshipin.com_merged.m3u
         mv ../t3op2.m3u ./catvod.com.m3u
-        mv ../t3op2_merged.m3u ./catvod.com_merged.m3u
+        mv ../t3op2_ms.m3u ./catvod.com_merged.m3u
 
 
 
