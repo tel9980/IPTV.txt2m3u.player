@@ -1,7 +1,7 @@
 import re
 import argparse
 import os
-#
+#频道组‘混乱’的m3u专用脚本，如将CCTV各频道按照体育、新闻、影视等分在了不同频道组
 # --- 1. 辅助函数：提取归一化 Key ---
 def get_norm_key(name):
     """去掉横杠和后缀'台'，转大写，用于判断是否为同名频道"""
