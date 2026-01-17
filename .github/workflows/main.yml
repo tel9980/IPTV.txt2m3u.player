@@ -25,8 +25,8 @@ jobs:
     - name: Process Migu Files
       continue-on-error: true     # 即使失败也会继续执行后续块 
       run: |
-        wget https://github.com/ioptu/migu_video/raw/refs/heads/main/migu.txt -O migu.m3u -t 2 --waitretry=5
-        python ./scripts/m3u_mergerng.py -i migu.m3u -o mg_m.m3u
+        wget https://github.com/ioptu/migu_video/raw/refs/heads/main/migu.txt -O mig.m3u -t 2 --waitretry=5
+        python ./scripts/m3u_mergerng.py -i mig.m3u -o mg_m.m3u
         python ./scripts/m3u_merger.py -i mg_m.m3u -o mg_merged.m3u
         python ./scripts/add_channel.py -i mg_merged.m3u -o mg_merged.m3u -a "搜狐剧场,https://hdl-vip-ws.qf.56.com/live/lc_11730.flv"
         
@@ -107,7 +107,7 @@ jobs:
         python ./scripts/m3u_header_tool.py -i t0op_ms.m3u -c -E "https://gh-proxy.org/github.com/ioptu/migu_video/raw/refs/heads/main/e.xml"
         
     - name: Final Merge 2
-      if: env.ONLY_UPDATE_MIGU != 'true'
+      if: env.ONLY_UPDATE_MIGU != 'false'
       continue-on-error: true
       run: |       
         python ./scripts/url_sortergr.py -i t0op_m.m3u -o ttvop_m.m3u -gr "央视" -rg "央视" 
@@ -128,7 +128,8 @@ jobs:
         cd "$REPO_NAME" || exit 1 
 
         # 使用 [ -f ] 检查文件是否存在再移动，防止因前面某块失败导致文件缺失而报错退出
-        [ -f ../mg_merged.m3u ] && mv ../mg_merged.m3u ./migu_merged.m3u || echo "migu skip"
+        [ -f ../mig.m3u ] && mv ../mig.m3u ./migu.m3u || echo "migu skip"
+        [ -f ../mg_merged.m3u ] && mv ../mg_merged.m3u ./migu_merged.m3u || echo "migu_merged skip"
         
         if [ "$ONLY_UPDATE_MIGU" != "true" ]; then
           
