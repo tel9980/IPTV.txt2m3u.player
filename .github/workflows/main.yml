@@ -29,6 +29,7 @@ jobs:
         python ./scripts/m3u_mergerng.py -i mig.m3u -o mg_m.m3u
         python ./scripts/m3u_merger.py -i mg_m.m3u -o mg_merged.m3u
         python ./scripts/add_channel.py -i mg_merged.m3u -o mg_merged.m3u -a "搜狐剧场,https://hdl-vip-ws.qf.56.com/live/lc_11730.flv"
+        python ./scripts/deduplicate.py -i mig.m3u -o mig_d.m3u
         
     # --- 块2: huuc 源处理  ---
     - name: Process luuc Files
@@ -128,7 +129,7 @@ jobs:
         cd "$REPO_NAME" || exit 1 
 
         # 使用 [ -f ] 检查文件是否存在再移动，防止因前面某块失败导致文件缺失而报错退出
-        [ -f ../mig.m3u ] && mv ../mig.m3u ./migu.m3u || echo "migu skip"
+        [ -f ../mig_d.m3u ] && mv ../mig_d.m3u ./migu.m3u || echo "migu skip"
         [ -f ../mg_merged.m3u ] && mv ../mg_merged.m3u ./migu_merged.m3u || echo "migu_merged skip"
         
         if [ "$ONLY_UPDATE_MIGU" != "true" ]; then
