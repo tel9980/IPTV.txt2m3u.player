@@ -298,17 +298,25 @@ def sort_m3u_urls(input_file: str, output_file: str, keywords_str: str,
                 return score
         return 0
 
-    # 频道组排序得分函数
-    def get_group_sort_score(channel_data: Dict) -> int:
+    # 频道组排序得分函数 - 修复版本，支持反向模式
+    def get_group_sort_score(channel_data: Dict, reverse: bool = False) -> int:
         ch_group = channel_data.get("group", "")
         
         if group_names:
             for index, group_kw in enumerate(group_names):
                 if group_kw.lower() in ch_group.lower():
-                    score = index - len(group_names)
-                    debug_log(f"组 '{ch_group}' 匹配关键字 '{group_kw}'，得分: {score}", 'debug')
-                    return score
-        return 0
+                    if reverse:
+                        # 反向模式：匹配的组得高分，排后面
+                        return index + 1000
+                    else:
+                        # 正常模式：匹配的组得低分，排前面
+                        return index - len(group_names)
+        
+        # 不匹配的组
+        if reverse:
+            return -1  # 排在最前面
+        else:
+            return 1   # 排在最后面
 
     # 重命名频道函数
     def rename_inf(inf_line: str, name: str) -> str:
@@ -336,11 +344,20 @@ def sort_m3u_urls(input_file: str, output_file: str, keywords_str: str,
     output_lines.extend(header_lines)
     debug_log(f"添加了 {len(header_lines)} 行头部信息", 'debug')
     
-    # 如果需要组间排序
+    # 如果需要组间排序 - 修复版，支持反向模式
     if group_sort and group_names and not rename_mode:
-        debug_log("执行组间排序", 'info')
-        channels_data.sort(key=get_group_sort_score)
+        debug_log(f"执行组间排序，反向模式: {reverse_mode}", 'info')
+        
+        # 使用改进的组排序函数，支持反向模式
+        channels_data.sort(key=lambda ch: get_group_sort_score(ch, reverse_mode))
         group_sort_count = 1
+        
+        # 调试输出排序结果
+        if DEBUG_MODE:
+            debug_log("组排序后的频道顺序:", 'debug')
+            for idx, ch in enumerate(channels_data[:10]):  # 只显示前10个
+                group = ch.get("group", "无组名")
+                debug_log(f"  频道 {idx+1}: 组='{group}', 得分={get_group_sort_score(ch, reverse_mode)}", 'debug')
     
     # 处理每个频道
     processed_groups = set()
@@ -572,6 +589,16 @@ def main():
   
   排序模式:
     %(prog)s -i input.m3u -k "keyword1,keyword2" -r
+
+🎯 组排序用法:
+  正常组排序（匹配的组在前）:
+    %(prog)s -i input.m3u -gr "组1,组2,组3" -gs
+  
+  反向组排序（匹配的组在后）:
+    %(prog)s -i input.m3u -gr "组1,组2,组3" -gs -r
+  
+  例如，把"其它"组排到最后:
+    %(prog)s -i input.m3u -gr "其它" -gs -r
             """
         )
         
@@ -579,7 +606,7 @@ def main():
         parser.add_argument("-i", "--input", required=True, help="输入M3U文件路径")
         parser.add_argument("-o", "--output", default="sorted_output.m3u", help="输出文件路径")
         parser.add_argument("-k", "--keywords", default="", help="URL关键字，逗号分隔")
-        parser.add_argument("-r", "--reverse", action="store_true", help="开启反向模式")
+        parser.add_argument("-r", "--reverse", action="store_true", help="开启反向模式（影响URL排序和组排序）")
         
         # 频道相关参数
         parser.add_argument("-ch", "--channels", help="目标频道名关键字，逗号分隔")
@@ -685,7 +712,10 @@ def main():
             if args.keywords:
                 print(f"   URL排序: {sort_count} 个频道的URL已按 '{args.keywords}' 排序")
             if args.group_sort and group_sort_count:
-                print(f"   组间排序: 频道组已按照 '{args.groups}' 顺序排列")
+                if args.reverse:
+                    print(f"   组间排序: 频道组已按照 '{args.groups}' 反向排列（匹配的组在后）")
+                else:
+                    print(f"   组间排序: 频道组已按照 '{args.groups}' 顺序排列（匹配的组在前）")
         
         print(f"\n📊 统计信息:")
         print(f"   输入文件: {args.input}")
