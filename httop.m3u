@@ -473,26 +473,6 @@ http://111.43.126.240:7777/hls/102/index.m3u8
 http://111.43.126.240:7777/hls/103/index.m3u8
 #EXTINF:-1 tvg-name="咪咕精彩体育" group-title="其它频道",咪咕精彩体育
 http://111.43.126.240:7777/hls/104/index.m3u8
-#EXTINF:-1 tvg-name="CCTV2" group-title="央视频道",CCTV-2 财经
-http://218.19.109.185:808/hls/2/index.m3u8
-#EXTINF:-1 tvg-name="CCTV1" group-title="央视频道",CCTV-1 综合
-http://218.19.109.185:808/hls/1/index.m3u8
-#EXTINF:-1 tvg-name="CCTV4" group-title="央视频道",CCTV-4 中文国际
-http://218.19.109.185:808/hls/3/index.m3u8
-#EXTINF:-1 tvg-name="CCTV9" group-title="央视频道",CCTV-9 纪录
-http://218.19.109.185:808/hls/5/index.m3u8
-#EXTINF:-1 tvg-name="北京卫视" group-title="卫视频道",北京卫视
-http://218.19.109.185:808/hls/11/index.m3u8
-#EXTINF:-1 tvg-name="湖北卫视" group-title="卫视频道",湖北卫视
-http://218.19.109.185:808/hls/14/index.m3u8
-#EXTINF:-1 tvg-name="山东卫视" group-title="卫视频道",山东卫视
-http://218.19.109.185:808/hls/15/index.m3u8
-#EXTINF:-1 tvg-name="黑龙江卫视" group-title="卫视频道",黑龙江卫视
-http://218.19.109.185:808/hls/16/index.m3u8
-#EXTINF:-1 tvg-name="CCTV5+" group-title="央视频道",CCTV-5+ 体育赛事
-http://218.19.109.185:808/hls/31/index.m3u8
-#EXTINF:-1 tvg-name="CCTV5+" group-title="央视频道",CCTV-5+ 体育赛事
-http://218.19.109.185:808/hls/31/index.m3u8
 #EXTINF:-1 tvg-name="CCTV1" group-title="央视频道",CCTV-1 综合
 http://61.240.150.5:81/hls/1/index.m3u8
 #EXTINF:-1 tvg-name="CCTV2" group-title="央视频道",CCTV-2 财经
