@@ -35,6 +35,15 @@ jobs:
         ##python ./scripts/url_sorter.py -i mig_d.m3u -o mig_d.m3u -k "http" -ch "CCTV5+" -rn "CCTV5+"
         ##python ./scripts/add_channel.py -i mig_d.m3u -o mig_d.m3u -a "搜狐剧场,https://hdl-vip-ws.qf.56.com/live/lc_11730.flv"
         
+    # --- pluto 源处理  ---
+    - name: Process pluto Files
+      if: env.ONLY_UPDATE_MIGU != 'true'    
+      continue-on-error: true
+      run: |
+            wget https://iptv-org.github.io/iptv/index.m3u -O io.m3u  -t 2 --waitretry=5
+            python ./scripts/extract.py --input io.m3u --output io.m3u --eoru 'pluto,pluto' -n
+            python ./scripts/m3u_merger.py -i io.m3u -o io_merged.m3u
+            
     # --- httop 源处理  ---
     - name: Process httop Files
       if: env.ONLY_UPDATE_MIGU != 'true'    
@@ -185,7 +194,9 @@ jobs:
           [ -f ../hp.m3u ] && mv ../hp.m3u ./httop.m3u || true
           [ -f ../hp_merged.m3u ] && mv ../hp_merged.m3u ./httop_merged.m3u || true 
           [ -f ../gop.m3u ] && mv ../gop.m3u ./iptv.m3u || true
-          [ -f ../gop_merged.m3u ] && mv ../gop_merged.m3u ./iptv_merged.m3u || true           
+          [ -f ../gop_merged.m3u ] && mv ../gop_merged.m3u ./iptv_merged.m3u || true
+          [ -f ../io.m3u ] && mv ../io.m3u ./plutotv.m3u || true
+          [ -f ../io_merged.m3u ] && mv ../io_merged.m3u ./plutotv_merged.m3u || true          
         fi
 
         git add .
