@@ -52,10 +52,21 @@ jobs:
             wget https://httop.top/hotel.m3u -O hp.m3u  -t 2 --waitretry=5
             python ./scripts/m3u_merger.py -i hp.m3u -o hp_merged.m3u
             python ./scripts/url_sortergr.py -i hp_merged.m3u -o hp_merged.m3u -gr '央视,卫视,其它' -gs
+            
+    # --- ---
+    - name: Process iptv Files
+      if: env.ONLY_UPDATE_MIGU != 'true'    
+      continue-on-error: true
+      run: |
+            #无需频繁更新  # 与guovi源最多同时启用一个，都是处理源并输出iptv.m3u
+            wget https://github.com/ioptu/migu_video/raw/refs/heads/main/iptv.txt -O ip.m3u  -t 2 --waitretry=5
+            python ./scripts/extract.py --input ip.m3u --output ip.m3u --eoru ',/dsdqca/' -n -r
+            python ./scripts/m3u_merger.py -i ip.m3u -o ip_merged.m3u
+            python ./scripts/url_sortergr.py -i ip_merged.m3u -o ip_merged.m3u -gr '央视,卫视,其他' -gs
 
     # --- guovin 源处理  ---
     - name: Process guovin Files
-      if: env.ONLY_UPDATE_MIGU != 'true'    
+      if: env.ONLY_UPDATE_MIGU != 'false'    
       continue-on-error: true
       run: |
             wget https://raw.githubusercontent.com/Guovin/iptv-api/refs/heads/gd/output/result.m3u -O gop.m3u  -t 2 --waitretry=5
@@ -195,6 +206,8 @@ jobs:
           [ -f ../hp_merged.m3u ] && mv ../hp_merged.m3u ./httop_merged.m3u || true 
           [ -f ../gop.m3u ] && mv ../gop.m3u ./iptv.m3u || true
           [ -f ../gop_merged.m3u ] && mv ../gop_merged.m3u ./iptv_merged.m3u || true
+          [ -f ../ip.m3u ] && mv ../ip.m3u ./iptv.m3u || true
+          [ -f ../ip_merged.m3u ] && mv ../ip_merged.m3u ./iptv_merged.m3u || true         
           [ -f ../io.m3u ] && mv ../io.m3u ./plutotv.m3u || true
           [ -f ../io_merged.m3u ] && mv ../io_merged.m3u ./plutotv_merged.m3u || true          
         fi
